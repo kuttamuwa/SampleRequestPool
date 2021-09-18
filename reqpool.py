@@ -6,8 +6,16 @@ Make long time async gp request before/after edit on any layer and save the resu
 see: create_request_pool.sql
 
 Workflow:
+1- Create a table: process_pool. Add columns like "created_date", "finished_date", "service_url" "params", "status" etc.
+
+2- Write an SQL trigger or use arcade to insert new request record whenever edited X layer.
+
+3- You have to develop and run something, unfortunately. Check my Python solution. Uses 2 thread class.
+One for refreshing pool via requesting your "process_pool" table and other is for request.
 
 
+References:
+    https://developers.arcgis.com/python/api-reference/arcgis.geoprocessing.html
 """
 
 from asyncio.futures import Future
@@ -31,11 +39,17 @@ usr = ""  # agol user
 pwd = ""  # agol pwd
 tool = "https://localhost/server/rest/services/test/MyToolbox/GPServer"  # change it yours
 
-cbs = GIS(portal, usr, pwd, verify_cert=False)
-tbx = import_toolbox(tool, gis=cbs)
+my_gisportal = GIS(portal, usr, pwd, verify_cert=False)
+tbx = import_toolbox(tool, gis=my_gisportal)
 
 
 class PoolRefresher(Thread):
+    """
+    This is our main thread in fact. It queries the SDE.REQUEST_POOL (change it if stored in another place)
+    always and create task if there is WAITING status
+
+    database connection object stored in here also so that all db operations handled here
+    """
     _sql = "select service_name, service_url, params, status " \
            "from SDE.REQUEST_POOL where status = 'WAITING'"
     connection = db.connect()
@@ -78,6 +92,9 @@ class PoolRefresher(Thread):
 
 
 class GPRequest(Thread):
+    """
+    A class only represents service request operation
+    """
     def __init__(self, service_name, service_url, params, status):
         # service info
         self.service_name = service_name
@@ -94,10 +111,9 @@ class GPRequest(Thread):
 
     def run_mytool_service(self):
         print(f"Requesting : {self.service_url}")
-        req = tbx.olu_km_toolbox(5, cbs, PoolRefresher.fut)
+        req = tbx.olu_km_toolbox(5, my_gisportal, PoolRefresher.fut)  # future object is needed
         res = req.result()  # made sync
 
-        # response = requests.post(self.service_url, params=self.params, verify=False)
         print(f"Response of {self.service_name} : \n"
               f"{res}")
 
