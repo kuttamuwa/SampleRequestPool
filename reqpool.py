@@ -7,10 +7,10 @@ Make long time async gp request before/after edit on any layer and save the resu
 
 Workflow:
 1- Create a table: process_pool. Add columns like "created_date", "finished_date", "service_url" "params", "status" etc.
-SEE: create_request_pool.sql
+SEE: prepare_environment/sql/create_request_pool.sql
 
 2- Write an SQL trigger or use arcade to insert new request record whenever edited X layer.
-SEE arcade rule:
+SEE arcade rule: prepare_environment/arcade/request_pool_rule.js or just import cbs with ArcGIS Pro
 
 3- You have to develop and run something, unfortunately. Check my Python solution. Uses 2 thread class.
 One for refreshing pool via requesting your "process_pool" table and other is for request.
@@ -43,6 +43,7 @@ tool = "https://localhost/server/rest/services/test/MyToolbox/GPServer"  # chang
 
 my_gisportal = GIS(portal, usr, pwd, verify_cert=False)
 tbx = import_toolbox(tool, gis=my_gisportal)
+request_pool_table_name = "SDE.REQUEST_POOL"  # change it yours
 
 
 class PoolRefresher(Thread):
@@ -52,26 +53,25 @@ class PoolRefresher(Thread):
 
     database connection object stored in here also so that all db operations handled here
     """
-    _sql = "select service_name, service_url, params, status " \
-           "from SDE.REQUEST_POOL where status = 'WAITING'"
+    _sql = f"select service_name, service_url, params, status from {request_pool_table_name} where status = 'WAITING'"
     connection = db.connect()
     fut = Future()
 
     @classmethod
     def finish_task(cls, service_name):
-        update_sql = f"UPDATE SDE.REQUEST_POOL set status = 'FINISHED' WHERE service_name = '{service_name}'"
+        update_sql = f"UPDATE {request_pool_table_name} set status = 'FINISHED' WHERE service_name = '{service_name}'"
         cls.connection.execute(update_sql)
         print("task set finished in db")
 
     @classmethod
     def run_task(cls, service_name):
-        update_sql = f"UPDATE SDE.REQUEST_POOL set status = 'RUNNING' WHERE service_name = '{service_name}'"
+        update_sql = f"UPDATE {request_pool_table_name} set status = 'RUNNING' WHERE service_name = '{service_name}'"
         cls.connection.execute(update_sql)
         print("task set run in db")
 
     @classmethod
     def get_service_status(cls, service_name):
-        _sql = f"SELECT status FROM SDE.REQUEST_POOL WHERE service_name = '{service_name}'"
+        _sql = f"SELECT status FROM {request_pool_table_name} WHERE service_name = '{service_name}'"
         return cls.connection.execute(_sql).fetchall()
 
     @classmethod
