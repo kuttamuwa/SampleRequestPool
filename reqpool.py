@@ -3,12 +3,14 @@ Developer: Umut Ucok
 
 Need:
 Make long time async gp request before/after edit on any layer and save the result into somewhere (in db),
-see: create_request_pool.sql
+
 
 Workflow:
 1- Create a table: process_pool. Add columns like "created_date", "finished_date", "service_url" "params", "status" etc.
+SEE: create_request_pool.sql
 
 2- Write an SQL trigger or use arcade to insert new request record whenever edited X layer.
+SEE arcade rule:
 
 3- You have to develop and run something, unfortunately. Check my Python solution. Uses 2 thread class.
 One for refreshing pool via requesting your "process_pool" table and other is for request.

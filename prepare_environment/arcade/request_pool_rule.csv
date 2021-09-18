@@ -1,0 +1,27 @@
+﻿NAME,DESCRIPTION,TYPE,SUBTYPE,FIELD,ISEDITABLE,TRIGGERINSERT,TRIGGERDELETE,TRIGGERUPDATE,SCRIPTEXPRESSION,ERRORNUMBER,ERRORMESSAGE,EXCLUDECLIENTEVALUATION,ISENABLED,BATCH,SEVERITY,TAGS,CATEGORY,CHECKPARAMETERS
+hatbassonu_request_pool,test,CALCULATION,,SHAPE,True,True,False,True,"var hatguid = $feature.GLOBALID
+
+var request_pool = FeatureSetByName($datastore, ""SDE.REQUEST_POOL"",
+    [""SERVICE_NAME"", ""SERVICE_URL"", ""PARAMS"", ""STATUS""])
+
+var service_name = ""line_"" + hatguid
+var service_url = ""https://localhost:6443/arcgis/rest/services/OluKMToolbox/GPServer/OluKMToolbox/submitJob""
+
+return {
+    'result': $feature,
+    'edit': [
+        {
+        'className': 'SDE.REQUEST_POOL',
+        'adds': [
+            {
+            ""attributes"":
+                {
+                    ""SERVICE_NAME"": service_name,
+                    ""SERVICE_URL"": service_url,
+                    ""PARAMS"": ""line_id="" + hatguid,
+                    ""STATUS"": ""WAITING"",
+                    ""CREATED_DATE"": Date()
+                },
+        }]
+    }]
+}",,,True,True,False,,,,"{""type"":""PropertySet"",""propertySetItems"":[]}"
